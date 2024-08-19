@@ -19,7 +19,7 @@ class TaskListWrapperModel {
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
     data['status'] = status;
-    if (this.taskList != null) {
+    if (taskList != null) {
       data['data'] = taskList!.map((v) => v.toJson()).toList();
     }
     return data;

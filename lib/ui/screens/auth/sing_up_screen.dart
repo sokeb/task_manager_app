@@ -1,8 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:task_manager/data/models/network_response.dart';
-import 'package:task_manager/data/network_caller/network_caller.dart';
-import 'package:task_manager/data/utilities/urls.dart';
+import 'package:get/get.dart';
+import '../../controllers/register_user_controller.dart';
 import '../../utilities/app_colors.dart';
 import '../../utilities/app_constants.dart';
 import '../../widgets/background_widget.dart';
@@ -23,8 +22,12 @@ class _SignUnScreenState extends State<SignUnScreen> {
   final TextEditingController _mobileTEController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _showPassword = false;
-  bool _registrationInProgress = false;
 
+  @override
+  void initState() {
+    super.initState();
+    Get.put(RegisterUserController());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,19 +127,26 @@ class _SignUnScreenState extends State<SignUnScreen> {
                           }
                         }),
                     const SizedBox(height: 16),
-                    Visibility(
-                      visible: _registrationInProgress == false,
-                      replacement: const Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                      child: ElevatedButton(
-                          onPressed: () {
-                            if(_formKey.currentState!.validate()){
-                              _registerUser();
-                            }
-                          },
-                          child: const Icon(Icons.arrow_circle_right_outlined)),
-                    ),
+                    GetBuilder<RegisterUserController>(
+                        init: Get.find<RegisterUserController>(),
+                        builder: (registerUserController) {
+                          return Visibility(
+                            visible:
+                                registerUserController.registrationInProgress ==
+                                    false,
+                            replacement: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                            child: ElevatedButton(
+                                onPressed: () {
+                                  if (_formKey.currentState!.validate()) {
+                                    _onTapNextButton();
+                                  }
+                                },
+                                child: const Icon(
+                                    Icons.arrow_circle_right_outlined)),
+                          );
+                        }),
                     const SizedBox(height: 35),
                     Center(
                       child: RichText(
@@ -165,37 +175,27 @@ class _SignUnScreenState extends State<SignUnScreen> {
     );
   }
 
-  void _registerUser() async {
-    _registrationInProgress = true;
-    if (mounted) {
-      setState(() {});
-    }
- 
-    Map<String, dynamic> requestInput = {
-      "email": _emailTEController.text.trim(),
-      "firstName": _firstNameTEController.text.trim(),
-      "lastName": _lastNameTEController.text.trim(),
-      "mobile": _mobileTEController.text.trim(),
-      "password": _passwordTEController.text,
-      "photo": ""
-    };
-    NetworkResponse response =
-        await NetworkCaller.postRequest(Urls.registration, body: requestInput);
+  Future<void> _onTapNextButton() async {
+    if (_formKey.currentState!.validate()) {
+      final RegisterUserController registerController =
+          Get.find<RegisterUserController>();
+      final bool result = await registerController.registerUser(
+        _emailTEController.text.trim(),
+        _firstNameTEController.text.trim(),
+        _lastNameTEController.text.trim(),
+        _mobileTEController.text.trim(),
+        _passwordTEController.text,
+      );
 
-    _registrationInProgress = false ;
-    if (mounted) {
-      setState(() {});
-    }
-
-    if (response.isSuccess) {
-      _clearTextFields();
-      if (mounted) {
-        showSnackBArMessage(context, 'Registration Success');
-      }
-    } else {
-      if (mounted) {
-        showSnackBArMessage(
-            context, response.errorMessage ?? 'Registration Failed! try again');
+      if (result) {
+        _clearTextFields();
+        if (mounted) {
+          showSnackBArMessage(context, 'Registration Success', false);
+        }
+      } else {
+        if (mounted) {
+          showSnackBArMessage(context, registerController.errorMassage, true);
+        }
       }
     }
   }
@@ -209,7 +209,7 @@ class _SignUnScreenState extends State<SignUnScreen> {
   }
 
   void _onTapSingIn() {
-    Navigator.pop(context);
+    Get.back();
   }
 
   @override

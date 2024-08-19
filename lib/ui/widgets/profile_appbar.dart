@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:task_manager/ui/controllers/auth_controller.dart';
 import 'package:task_manager/ui/screens/auth/sign_in_screen.dart';
 import '../screens/update_profile.dart';
@@ -17,10 +18,7 @@ AppBar profileAppBar(context, [bool formUpdatePage = false]) {
             if (formUpdatePage == true) {
               return;
             }
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const UpdateProfileScreen()));
+            Get.to(()=> const UpdateProfileScreen());
           },
         child: CircleAvatar(
           child: ClipRRect(
@@ -34,10 +32,7 @@ AppBar profileAppBar(context, [bool formUpdatePage = false]) {
         if (formUpdatePage == true) {
           return;
         }
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => const UpdateProfileScreen()));
+        Get.to(()=> const UpdateProfileScreen());
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,10 +54,7 @@ AppBar profileAppBar(context, [bool formUpdatePage = false]) {
       IconButton(
           onPressed: () async {
             await AuthController.clearAllData();
-            Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const SignInScreen()),
-                (route) => false);
+            Get.offAll(()=> const SignInScreen());
           },
           icon: const Icon(Icons.logout_rounded))
     ],

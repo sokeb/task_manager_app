@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:task_manager/data/models/task_model.dart';
 import 'package:task_manager/ui/widgets/snack_bar_message.dart';
-
-import '../../data/models/network_response.dart';
-import '../../data/network_caller/network_caller.dart';
-import '../../data/utilities/urls.dart';
+import '../controllers/delete_task_controller.dart';
+import '../controllers/update_task_controller.dart';
 
 class TaskItem extends StatefulWidget {
   const TaskItem({
@@ -21,8 +20,6 @@ class TaskItem extends StatefulWidget {
 }
 
 class _TaskItemState extends State<TaskItem> {
-  bool _deleteInProgress = false;
-  bool _updateInProgress = false;
   String dropdownValue = '';
   List<String> statusList = [
     'New',
@@ -86,18 +83,12 @@ class _TaskItemState extends State<TaskItem> {
                                 ));
                           }).toList();
                         }),
-                    Visibility(
-                      visible: _deleteInProgress == false,
-                      replacement: const Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                      child: IconButton(
-                          onPressed: () {
-                            _deleteTask();
-                          },
-                          icon: const Icon(Icons.delete, color: Colors.red)),
-                    )
-                  ],
+                    IconButton(
+                        onPressed: () {
+                          _deleteTask();
+                        },
+                        icon: const Icon(Icons.delete,
+                            color: Colors.red))                  ],
                 ),
               ],
             ),
@@ -108,46 +99,29 @@ class _TaskItemState extends State<TaskItem> {
   }
 
   Future<void> _deleteTask() async {
-    _deleteInProgress = true;
-    if (mounted) {
-      setState(() {});
-    }
-    NetworkResponse response =
-        await NetworkCaller.getRequest(Urls.deleteTask(widget.task.sId!));
-
-    if (response.isSuccess) {
+    final DeleteTaskController deleteTaskController =
+        Get.find<DeleteTaskController>();
+    final bool result = await deleteTaskController.deleteTask(widget.task.sId!);
+    if (result) {
       widget.onUpdateTask();
     } else {
       if (mounted) {
-        showSnackBArMessage(
-            context, response.errorMessage ?? 'Failed to Delete task', true);
+        showSnackBArMessage(context, deleteTaskController.errorMessage, true);
       }
-    }
-    _deleteInProgress = false;
-    if (mounted) {
-      setState(() {});
     }
   }
 
   Future<void> _updateTaskStatus() async {
-    _updateInProgress = true;
-    if (mounted) {
-      setState(() {});
-    }
-    NetworkResponse response = await NetworkCaller.getRequest(
-        Urls.updateTaskStatus(widget.task.sId!, dropdownValue));
-
-    if (response.isSuccess) {
+    final UpdateTaskController updateTaskController =
+        Get.find<UpdateTaskController>();
+    final bool result = await updateTaskController.updateTaskStatus(
+        widget.task.sId!, dropdownValue);
+    if (result) {
       widget.onUpdateTask();
     } else {
       if (mounted) {
-        showSnackBArMessage(
-            context, response.errorMessage ?? 'Failed to Delete task', true);
+        showSnackBArMessage(context, updateTaskController.errorMessage, true);
       }
-    }
-    _updateInProgress = false;
-    if (mounted) {
-      setState(() {});
     }
   }
 }

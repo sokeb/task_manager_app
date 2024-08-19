@@ -19,7 +19,7 @@ class _MainBottomNavScreenState extends State<MainBottomNavScreen> {
     NewTaskScreen(),
     CompletedTaskScreen(),
     InProgressTaskScreen(),
-    CanceledTaskScreen()
+    CanceledTaskScreen(),
   ];
 
   @override
@@ -28,9 +28,9 @@ class _MainBottomNavScreenState extends State<MainBottomNavScreen> {
       body: _screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
-        onTap: (index){
+        onTap: (index) {
           _selectedIndex = index;
-          if(mounted){
+          if (mounted) {
             setState(() {});
           }
         },

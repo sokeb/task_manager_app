@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:task_manager/data/models/network_response.dart';
-import 'package:task_manager/data/network_caller/network_caller.dart';
-import 'package:task_manager/data/utilities/urls.dart';
+import 'package:get/get.dart';
 import 'package:task_manager/ui/widgets/snack_bar_message.dart';
+import '../controllers/add_new_task_controller.dart';
 import '../widgets/background_widget.dart';
 import '../widgets/profile_appbar.dart';
 
@@ -16,9 +15,14 @@ class AddNewTaskScreen extends StatefulWidget {
 class _AddNewTaskScreenState extends State<AddNewTaskScreen> {
   final TextEditingController _titleTEController = TextEditingController();
   final TextEditingController _descriptionTEController =
-  TextEditingController();
+      TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  bool _addNewTaskInProgress = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Get.put(AddNewTaskController());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,19 +41,14 @@ class _AddNewTaskScreenState extends State<AddNewTaskScreen> {
                     const SizedBox(height: 90),
                     Text(
                       'Add New Task',
-                      style: Theme
-                          .of(context)
-                          .textTheme
-                          .titleLarge,
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _titleTEController,
                       decoration: const InputDecoration(hintText: 'Title'),
                       validator: (String? value) {
-                        if (value
-                            ?.trim()
-                            .isEmpty ?? true) {
+                        if (value?.trim().isEmpty ?? true) {
                           return 'Please Enter the Title of New task';
                         } else {
                           return null;
@@ -61,29 +60,34 @@ class _AddNewTaskScreenState extends State<AddNewTaskScreen> {
                         controller: _descriptionTEController,
                         maxLines: 4,
                         decoration:
-                        const InputDecoration(hintText: 'Description'),
+                            const InputDecoration(hintText: 'Description'),
                         validator: (String? value) {
-                          if (value
-                              ?.trim()
-                              .isEmpty ?? true) {
+                          if (value?.trim().isEmpty ?? true) {
                             return 'Please Enter the Description of New task';
                           } else {
                             return null;
                           }
                         }),
                     const SizedBox(height: 16),
-                    Visibility(
-                      visible: _addNewTaskInProgress == false,
-                      replacement: const Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                      child: ElevatedButton(
-                          onPressed: (){
-                            if (_formKey.currentState!.validate()) {
-                              _addNewTask();
-                            }
-                          }, child: const Text('Add')),
-                    ),
+                    GetBuilder<AddNewTaskController>(
+                        init: Get.find<AddNewTaskController>(),
+                        builder: (addNewTaskController) {
+                          return Visibility(
+                            visible:
+                                addNewTaskController.addNewTaskInProgress ==
+                                    false,
+                            replacement: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                            child: ElevatedButton(
+                                onPressed: () {
+                                  if (_formKey.currentState!.validate()) {
+                                    _onTabAddButton();
+                                  }
+                                },
+                                child: const Text('Add')),
+                          );
+                        }),
                     const SizedBox(height: 35),
                   ],
                 ),
@@ -95,40 +99,30 @@ class _AddNewTaskScreenState extends State<AddNewTaskScreen> {
     );
   }
 
-  Future<void> _addNewTask() async {
-    _addNewTaskInProgress = true;
-    if (mounted) {
-      setState(() {});
-    }
+  Future<void> _onTabAddButton() async {
     Map<String, dynamic> requestData = {
       "title": _titleTEController.text.trim(),
       "description": _descriptionTEController.text.trim(),
       "status": "New"
     };
-    NetworkResponse response = await NetworkCaller.postRequest(
-        Urls.createTask, body: requestData);
-    _addNewTaskInProgress = false;
-    if (mounted) {
-      setState(() {});
-    }
-    if(response.isSuccess){
-      if(mounted){
+    final AddNewTaskController addTaskController =
+        Get.find<AddNewTaskController>();
+    final bool result = await addTaskController.addTask(requestData);
+    if (result) {
+      if (mounted) {
         _clearTextFlied();
-        showSnackBArMessage(context, 'New Task Added');
-      }
-    }
-    else{
-      if(mounted){
-        showSnackBArMessage(context, 'New Task Add Failed! Try again.', true);
+        showSnackBArMessage(context, 'New Task Added');}
+    } else {
+      if (mounted) {
+        showSnackBArMessage(context, addTaskController.errorMessage);
       }
     }
   }
 
-  void _clearTextFlied(){
+  void _clearTextFlied() {
     _titleTEController.clear();
     _descriptionTEController.clear();
   }
-
 
   @override
   void dispose() {

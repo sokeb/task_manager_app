@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:task_manager/data/models/network_response.dart';
-import 'package:task_manager/data/models/task_list_wrapper_model.dart';
-import 'package:task_manager/data/network_caller/network_caller.dart';
-import 'package:task_manager/data/utilities/urls.dart';
+import 'package:get/get.dart';
 import 'package:task_manager/ui/widgets/snack_bar_message.dart';
 import '../../data/models/task_model.dart';
+import '../controllers/completed_task_controller.dart';
 import '../widgets/profile_appbar.dart';
 import '../widgets/task_item.dart';
 
@@ -16,12 +14,12 @@ class CompletedTaskScreen extends StatefulWidget {
 }
 
 class _CompletedTaskScreenState extends State<CompletedTaskScreen> {
-  bool _getCompletedTaskInProgress = false;
   List<TaskModel> completedTaskList = [];
 
   @override
   void initState() {
     super.initState();
+    Get.find<CompletedTaskController>();
     _getCompletedTask();
   }
 
@@ -30,51 +28,44 @@ class _CompletedTaskScreenState extends State<CompletedTaskScreen> {
     return Scaffold(
       appBar: profileAppBar(context),
       body: RefreshIndicator(
-        onRefresh: ()async{
+        onRefresh: () async {
           _getCompletedTask();
         },
-        child: Visibility(
-          visible: _getCompletedTaskInProgress == false,
-          replacement: const Center(
-            child: CircularProgressIndicator(),
-          ),
-          child: ListView.builder(
-              itemCount: completedTaskList.length,
-              itemBuilder: (context, index) {
-                return TaskItem(
-                  task: completedTaskList[index],
-                  onUpdateTask: () {
-                    _getCompletedTask();
-                  },
-                );
-              }),
-        ),
+        child: GetBuilder<CompletedTaskController>(
+            builder: (completedTaskController) {
+          return Visibility(
+            visible:
+                completedTaskController.getCompletedTaskInProgress == false,
+            replacement: const Center(
+              child: CircularProgressIndicator(),
+            ),
+            child: ListView.builder(
+                itemCount: completedTaskList.length,
+                itemBuilder: (context, index) {
+                  return TaskItem(
+                    task: completedTaskList[index],
+                    onUpdateTask: () {
+                      _getCompletedTask();
+                    },
+                  );
+                }),
+          );
+        }),
       ),
     );
   }
 
   Future<void> _getCompletedTask() async {
-    _getCompletedTaskInProgress = true;
-    if (mounted) {
-      setState(() {});
-    }
-    NetworkResponse networkResponse =
-        await NetworkCaller.getRequest(Urls.completedTasks);
-    if (networkResponse.isSuccess) {
-      TaskListWrapperModel taskListWrapperModel =
-          TaskListWrapperModel.fromJson(networkResponse.responseData);
-      completedTaskList = taskListWrapperModel.taskList ?? [];
+    final CompletedTaskController completedTaskController =
+        Get.find<CompletedTaskController>();
+    final bool result = await completedTaskController.getCompletedTask();
+    if (result) {
+      completedTaskList = completedTaskController.completedTaskList;
     } else {
       if (mounted) {
         showSnackBArMessage(
-            context,
-            networkResponse.errorMessage ?? 'Failed to get completed Task',
-            true);
+            context, completedTaskController.errorMassage, false);
       }
-    }
-    _getCompletedTaskInProgress = false;
-    if (mounted) {
-      setState(() {});
     }
   }
 }

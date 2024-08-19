@@ -8,21 +8,18 @@ class NetworkCachedImage extends StatelessWidget {
   final BoxFit? fit;
 
   const NetworkCachedImage(
-      {super.key, required this.url,
-         this.width,
-         this.height,
-         this.fit,});
-
+      {super.key, required this.url, this.width, this.height, this.fit});
 
   @override
   Widget build(BuildContext context) {
     return CachedNetworkImage(
-      imageUrl: url, progressIndicatorBuilder: (_, __, ___){
+      imageUrl: url,
+      progressIndicatorBuilder: (_, __, ___) {
         return const CircularProgressIndicator();
-    },
-    errorWidget: (_, __, ___){
+      },
+      errorWidget: (_, __, ___) {
         return const Icon(Icons.error_outline);
-    },
+      },
     );
   }
 }

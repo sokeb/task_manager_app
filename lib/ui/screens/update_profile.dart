@@ -2,13 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:task_manager/data/models/network_response.dart';
-import 'package:task_manager/data/models/user_model.dart';
-import 'package:task_manager/data/network_caller/network_caller.dart';
-import 'package:task_manager/data/utilities/urls.dart';
 import 'package:task_manager/ui/controllers/auth_controller.dart';
 import 'package:task_manager/ui/widgets/snack_bar_message.dart';
+import '../controllers/update_profile_data_controller.dart';
 import '../widgets/background_widget.dart';
 import '../widgets/profile_appbar.dart';
 
@@ -27,11 +25,11 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   final TextEditingController _mobileTEController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   XFile? _selectedImage;
-  bool _updateInProgress = false;
 
   @override
   void initState() {
     super.initState();
+    Get.find<UpdateProfileDataController>();
     final userData = AuthController.userData!;
     _emailTEController.text = userData.email ?? '';
     _firstNameTEController.text = userData.firstName ?? '';
@@ -89,9 +87,24 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                       decoration: const InputDecoration(hintText: 'Password'),
                     ),
                     const SizedBox(height: 16),
-                    ElevatedButton(
-                        onPressed: () {_updateProfileData();},
-                        child: const Icon(Icons.arrow_circle_right_outlined)),
+                    GetBuilder<UpdateProfileDataController>(
+                        init: Get.find<UpdateProfileDataController>(),
+                        builder: (updateProfileDataController) {
+                          return Visibility(
+                            visible:
+                                updateProfileDataController.updateInProgress ==
+                                    false,
+                            replacement: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                            child: ElevatedButton(
+                                onPressed: () {
+                                  _updateProfileData();
+                                },
+                                child: const Icon(
+                                    Icons.arrow_circle_right_outlined)),
+                          );
+                        }),
                     const SizedBox(height: 10),
                   ],
                 ),
@@ -160,11 +173,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   }
 
   Future<void> _updateProfileData() async {
-    _updateInProgress = true;
-    String _encodedPhoto = AuthController.userData?.photo?? '';
-    if (mounted) {
-      setState(() {});
-    }
+    String encodedPhoto = AuthController.userData?.photo ?? '';
 
     Map<String, dynamic> requestedBody = {
       "email": _emailTEController.text.trim(),
@@ -180,35 +189,26 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
 
     if (_selectedImage != null) {
       File file = File(_selectedImage!.path);
-      _encodedPhoto = base64Encode(file.readAsBytesSync());
-      requestedBody['photo'] = _encodedPhoto;
+      encodedPhoto = base64Encode(file.readAsBytesSync());
+      requestedBody['photo'] = encodedPhoto;
     }
-    final NetworkResponse response = await NetworkCaller.postRequest(
-        Urls.profileUpdate,
-        body: requestedBody);
 
-    if (response.isSuccess) {
-      UserModel userModel = UserModel(
-        email: _emailTEController.text.trim(),
-        firstName: _firstNameTEController.text.trim(),
-        lastName: _lastNameTEController.text.trim(),
-        mobile: _mobileTEController.text.trim(),
-        photo: _encodedPhoto,
-      );
-      await AuthController.saveUserData(userModel);
+    final UpdateProfileDataController profileDataController =
+        Get.find<UpdateProfileDataController>();
+    final bool result = await profileDataController.updateProfileData(
+        requestedBody,
+        _emailTEController.text.trim(),
+        _firstNameTEController.text.trim(),
+        _lastNameTEController.text.trim(),
+        _mobileTEController.text.trim(),
+        encodedPhoto);
+    if (result) {
       if (mounted) {
-        showSnackBArMessage(
-            context,
-            'Profile data update'
-            );
+        showSnackBArMessage(context, 'Profile data update');
       }
-
     } else {
       if (mounted) {
-        showSnackBArMessage(
-            context,
-            response.errorMessage ?? 'Failed to update profile data! try again',
-            true);
+        showSnackBArMessage(context, profileDataController.errorMessage);
       }
     }
   }

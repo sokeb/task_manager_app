@@ -1,9 +1,8 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:task_manager/ui/screens/auth/pin_verification_screen.dart';
-import '../../../data/models/network_response.dart';
-import '../../../data/network_caller/network_caller.dart';
-import '../../../data/utilities/urls.dart';
+import '../../controllers/recover_verify_email_controller.dart';
 import '../../utilities/app_colors.dart';
 import '../../widgets/background_widget.dart';
 import '../../widgets/snack_bar_message.dart';
@@ -23,6 +22,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: BackgroundWidget(
         child: SafeArea(
           child: SingleChildScrollView(
@@ -84,33 +84,24 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     );
   }
 
-  Future<void> _recoverVerifyEmail() async {
-    String email = _emailTEController.text.trim();
-    NetworkResponse response =
-        await NetworkCaller.getRequest(Urls.emailVerify(email));
-
-    if (response.isSuccess) {
-      if (mounted) {
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => PinVerificationScreen(email: email)));
-      }
-    } else {
-      if (mounted) {
-        showSnackBArMessage(
-            context, response.errorMessage ?? 'Something Wrong', true);
-      }
-    }
-  }
 
   void _onTapSingIn() {
-    Navigator.pop(context);
+    Get.back();
   }
 
-  void _onTapNextButton() {
+  Future<void> _onTapNextButton() async {
     if (_formKey.currentState!.validate()) {
-      _recoverVerifyEmail();
+      final RecoverVerifyEmailController recoverController = Get.find<RecoverVerifyEmailController>();
+      final bool result =
+          await recoverController.recoverVerifyEmail(_emailTEController.text.trim());
+
+      if(result){
+        Get.offAll(()=> PinVerificationScreen(email: _emailTEController.text.trim()));
+      }else{
+        if(mounted){
+          showSnackBArMessage(context, recoverController.errorMessage);
+        }
+      }
     }
   }
 

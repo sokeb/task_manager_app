@@ -1,11 +1,10 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
+import 'package:task_manager/ui/controllers/pin_verification_controller.dart';
 import 'package:task_manager/ui/screens/auth/reset_password_screen.dart';
 import 'package:task_manager/ui/screens/auth/sign_in_screen.dart';
-import '../../../data/models/network_response.dart';
-import '../../../data/network_caller/network_caller.dart';
-import '../../../data/utilities/urls.dart';
 import '../../utilities/app_colors.dart';
 import '../../widgets/background_widget.dart';
 import '../../widgets/snack_bar_message.dart';
@@ -95,43 +94,31 @@ class _PinVerificationScreenState extends State<PinVerificationScreen> {
     );
   }
 
-  void _onTapVerifyButton() {
-    if(_pinTEController.text.isNotEmpty){
-      _recoverVerifyOTP();
-    }else{
+  Future<void> _onTapVerifyButton() async {
+    String otp = _pinTEController.text.trim();
+    if (_pinTEController.text.isNotEmpty) {
+      final PinVerificationController pinController =
+          Get.find<PinVerificationController>();
+      final bool result = await pinController.verifyOTP(
+        widget.email,
+        otp,
+      );
+      if (result) {
+        Get.to(() => ResetPasswordScreen(email: widget.email, otp: otp));
+      } else {
+        if (mounted) {
+          showSnackBArMessage(context, pinController.errorMessage);
+        }
+      }
+    } else {
       if (mounted) {
-        showSnackBArMessage(
-            context, 'Please Enter OTP', true);
+        showSnackBArMessage(context, 'Please Enter OTP', true);
       }
     }
   }
 
   void _onTapSingIn() {
-    Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const SignInScreen()),
-        (route) => false);
-  }
-
-  Future<void> _recoverVerifyOTP() async {
-    String otp = _pinTEController.text.trim();
-    NetworkResponse response =
-        await NetworkCaller.getRequest(Urls.otpVerify(widget.email, otp));
-
-    if (response.isSuccess) {
-      if (mounted) {
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) =>
-                     ResetPasswordScreen(email: widget.email, otp: otp)));
-      }
-    } else {
-      if (mounted) {
-        showSnackBArMessage(
-            context, response.errorMessage ?? 'Wrong pin', true);
-      }
-    }
+    Get.offAll(()=> const  SignInScreen());
   }
 
   @override
